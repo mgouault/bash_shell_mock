@@ -172,7 +172,9 @@ shellmock_expect()
     # If the command has not been stubbed then generate the stub
     #-----------------------------------------------------------
     if [ ! -f "$BATS_TEST_DIRNAME/tmpstubs/$cmd" ]; then
-        REAL_CMD=$(which $cmd)
+        if [ "$(which $cmd)" != "" ]; then
+            REAL_CMD=$(which $cmd)
+        fi
         $MKDIR -p "$BATS_TEST_DIRNAME/tmpstubs"
         $TOUCH "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
         $ECHO "#!/bin/bash" >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
@@ -182,7 +184,12 @@ shellmock_expect()
         $ECHO "shellmock_replay $cmd "'"$*"' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
         $ECHO 'status=$?' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
         $ECHO 'if [ $status -eq 42 ]; then' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
-        $ECHO '    '$REAL_CMD' $*' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
+        if [ -z $REAL_CMD ]; then
+            $ECHO '    shellmock_capture_err $0 failed ' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
+            $ECHO '    exit $status' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
+        else
+            $ECHO '    '$REAL_CMD' $*' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
+        fi
         $ECHO 'elif [ $status -ne 0 ]; then' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
         $ECHO '    shellmock_capture_err $0 failed ' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
         $ECHO '    exit $status' >> "$BATS_TEST_DIRNAME/tmpstubs/$cmd"
